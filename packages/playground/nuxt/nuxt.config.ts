@@ -1,5 +1,5 @@
 import { defineNuxtConfig } from 'nuxt/config'
-import Inspector from 'vite-plugin-vue-inspector'
+import Inspector from 'vite-plugin-vue-inspect-jeesite'
 
 export default defineNuxtConfig({
   vite: {

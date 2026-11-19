@@ -1,6 +1,6 @@
-import type { Emitter } from 'nanoevents'
+import type { Emitter } from './nanoevents'
 import type { ElementTraceInfo } from './record'
-import { createNanoEvents } from 'nanoevents'
+import { createNanoEvents } from './nanoevents'
 import { customRef, ref, shallowRef } from 'vue'
 import { findTraceAtPointer, getInternalStore } from './record'
 

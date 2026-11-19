@@ -3,6 +3,7 @@ import type { ElementTraceInfo } from './record'
 import inspectorOptions from 'virtual:vue-inspector-options'
 import { reactive, watchEffect } from 'vue'
 import { events, isEnabled, lastMatchedElement } from './listeners'
+import { dataFlowPickActive, openDataFlow, toggleDataFlowPick } from './dataflow'
 
 const logoSvgContent = `<svg width="62" height="12" viewBox="0 0 62 12" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path d="M0.988281 5.34375C0.988281 5.26562 1.00391 5.20312 1.03516 5.15625C1.07422 5.10156 1.14062 5.04688 1.23438 4.99219C1.64062 4.80469 2.00391 4.62891 2.32422 4.46484C2.65234 4.30078 2.97266 4.14453 3.28516 3.99609C3.59766 3.83984 3.92188 3.6875 4.25781 3.53906C4.60156 3.39062 5 3.23047 5.45312 3.05859C5.46094 3.05859 5.46875 3.05859 5.47656 3.05859C5.48438 3.05078 5.49609 3.04688 5.51172 3.04688C5.59766 3.04688 5.66797 3.08594 5.72266 3.16406C5.77734 3.24219 5.80469 3.32031 5.80469 3.39844C5.80469 3.48438 5.78516 3.55469 5.74609 3.60938C5.71484 3.66406 5.65234 3.71094 5.55859 3.75L2.55859 5.07422L2.71094 5.22656C2.71094 5.23438 2.75 5.25781 2.82812 5.29688C2.91406 5.32812 3.02344 5.375 3.15625 5.4375C3.28906 5.5 3.4375 5.57031 3.60156 5.64844C3.77344 5.71875 3.94141 5.79297 4.10547 5.87109C4.27734 5.94141 4.44141 6.01172 4.59766 6.08203C4.75391 6.14453 4.88672 6.20312 4.99609 6.25781C5.07422 6.29688 5.18359 6.32812 5.32422 6.35156C5.47266 6.36719 5.61328 6.39062 5.74609 6.42188C5.88672 6.45312 6.00781 6.5 6.10938 6.5625C6.21875 6.61719 6.27344 6.70703 6.27344 6.83203C6.27344 6.94141 6.23047 7.02734 6.14453 7.08984C6.06641 7.14453 5.97656 7.17188 5.875 7.17188C5.77344 7.17188 5.625 7.15234 5.42969 7.11328C5.24219 7.06641 5.02344 7.00781 4.77344 6.9375C4.53125 6.85938 4.26562 6.76953 3.97656 6.66797C3.69531 6.56641 3.41406 6.46484 3.13281 6.36328C2.85156 6.26172 2.58203 6.15625 2.32422 6.04688C2.06641 5.9375 1.83594 5.83984 1.63281 5.75391C1.4375 5.66016 1.28125 5.57812 1.16406 5.50781C1.04688 5.4375 0.988281 5.38281 0.988281 5.34375Z" fill="#42D392"/>
@@ -155,6 +156,26 @@ function injectStyle(): void {
   .vue-inspector-animated {
     transition: none !important;
   }
+}
+.vue-inspector-dataflow-toggle {
+  position: fixed;
+  z-index: 2147483647;
+  margin: 0;
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  pointer-events: auto;
+  color: #f5f7f9;
+  background: rgba(16, 24, 40, 0.92);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.25);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.vue-inspector-dataflow-toggle.is-active {
+  background: #42b883;
+  color: #06281c;
 }`
   document.head.appendChild(style)
 }
@@ -337,6 +358,7 @@ const client: VueInspectorClient = {
   disable,
   toggleEnabled,
   openInEditor: openInEditor as VueInspectorClient['openInEditor'],
+  openDataFlow,
   onUpdated() {},
   onEnabled() {},
   onDisabled() {},
@@ -383,6 +405,17 @@ function setupOverlay(): () => void {
 
   toggle.append(logo, banner)
   container.appendChild(toggle)
+
+  // 数据流检查入口：点击进入拾取模式，下一次点击任意元素弹出组件链面板（不依赖检查模式开关）
+  const dataflowToggle = createElement('button', 'vue-inspector-dataflow-toggle', '数据流')
+  dataflowToggle.type = 'button'
+  dataflowToggle.setAttribute(KEY_IGNORE, 'true')
+  dataflowToggle.addEventListener('click', (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    toggleDataFlowPick()
+  })
+  container.appendChild(dataflowToggle)
 
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
   svg.classList.add('vue-inspector-svg')
@@ -461,6 +494,22 @@ function setupOverlay(): () => void {
     })
   })
 
+  const stopDataflowToggleEffect = watchEffect(() => {
+    const active = dataFlowPickActive.value
+    dataflowToggle.classList.toggle('is-active', active)
+    dataflowToggle.textContent = active ? '数据流：点击目标元素…（Esc 取消）' : '数据流'
+
+    const [x, y] = (inspectorOptions.toggleButtonPos || 'top-right').split('-')
+    applyStyles(dataflowToggle, {
+      top: '',
+      right: '',
+      bottom: '',
+      left: '',
+      [x]: '42px',
+      [y]: '15px',
+    })
+  })
+
   const stopMainEffect = watchEffect(() => {
     const visible = state.isVisible && state.main?.rect
     const transition = state.isAnimated ? `all ${ANIMATE_DURATION} ease-in` : 'none'
@@ -523,6 +572,7 @@ function setupOverlay(): () => void {
 
   const dispose = () => {
     stopToggleEffect()
+    stopDataflowToggleEffect()
     stopMainEffect()
     stopSubEffect()
     cleanupHover()

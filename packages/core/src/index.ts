@@ -31,6 +31,7 @@ export interface VueInspectorClient {
   onDisabled: () => void
 
   openInEditor: (url: URL) => Promise<unknown>
+  openDataFlow?: (el: Element, x?: number, y?: number) => void
   onUpdated: () => void
 }
 
@@ -133,6 +134,10 @@ function normalizeComboKeyPrint(toggleComboKey: string) {
     .split('-')
     .map((key) => toggleComboKeysMap[key] || key[0].toUpperCase() + key.slice(1))
     .join(dim('+'))
+}
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 export const DEFAULT_INSPECTOR_OPTIONS: VitePluginInspectorOptions = {
@@ -306,6 +311,49 @@ function VitePluginInspector(
             )
           }
         }
+
+        // 数据流检查：按文案反查定义行（label/title 形式优先于裸文本），供客户端精确跳转
+        server.middlewares.use('/__inspector-locate', (req: any, res: any) => {
+          const send = (code: number, body: string) => {
+            res.statusCode = code
+            res.setHeader('content-type', 'application/json')
+            res.end(body)
+          }
+          let params: URLSearchParams
+          try {
+            const raw = req.url ?? ''
+            const queryIndex = raw.indexOf('?')
+            params = new URLSearchParams(queryIndex >= 0 ? raw.slice(queryIndex + 1) : '')
+          } catch {
+            return send(400, '{}')
+          }
+          const file = params.get('file') || ''
+          const text = params.get('text') || ''
+          if (!text || !file) {
+            return send(400, '{}')
+          }
+          const abs = path.resolve(file)
+          const patterns = [
+            new RegExp(`label\\s*:\\s*['"]${escapeRegExp(text)}['"]`),
+            new RegExp(`title\\s*:\\s*['"]${escapeRegExp(text)}['"]`),
+            new RegExp(`['"]${escapeRegExp(text)}['"]`),
+          ]
+          fs.promises
+            .readFile(abs, 'utf-8')
+            .then((content) => {
+              const lines = content.split('\n')
+              for (const re of patterns) {
+                const hits: { line: number; column: number }[] = []
+                lines.forEach((lineText, index) => {
+                  const match = re.exec(lineText)
+                  if (match) hits.push({ line: index + 1, column: match.index + 1 })
+                })
+                if (hits.length) return send(200, JSON.stringify({ lines: hits.slice(0, 20) }))
+              }
+              send(200, JSON.stringify({ lines: [] }))
+            })
+            .catch(() => send(404, '{}'))
+        })
       },
       transformIndexHtml(html) {
         if (appendTo) return

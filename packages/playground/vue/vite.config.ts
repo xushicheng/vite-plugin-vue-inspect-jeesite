@@ -23,10 +23,10 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      'vite-plugin-vue-inspector/client/record': r('../../core/src/client/record.ts'),
-      'vite-plugin-vue-inspector/client/listeners': r('../../core/src/client/listeners.ts'),
-      'vite-plugin-vue-inspector/client/overlay': r('../../core/src/client/overlay.ts'),
-      'vite-plugin-vue-inspector/client/vite-devtools': r('../../core/src/client/vite-devtools.ts'),
+      'vite-plugin-vue-inspect-jeesite/client/record': r('../../core/src/client/record.ts'),
+      'vite-plugin-vue-inspect-jeesite/client/listeners': r('../../core/src/client/listeners.ts'),
+      'vite-plugin-vue-inspect-jeesite/client/overlay': r('../../core/src/client/overlay.ts'),
+      'vite-plugin-vue-inspect-jeesite/client/vite-devtools': r('../../core/src/client/vite-devtools.ts'),
     },
   },
 })

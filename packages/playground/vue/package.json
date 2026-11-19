@@ -16,6 +16,6 @@
     "@vue/compiler-sfc": "catalog:",
     "sass": "catalog:",
     "vite-plugin-inspect": "catalog:",
-    "vite-plugin-vue-inspector": "workspace:*"
+    "vite-plugin-vue-inspect-jeesite": "workspace:*"
   }
 }

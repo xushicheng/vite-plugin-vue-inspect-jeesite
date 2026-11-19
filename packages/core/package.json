@@ -1,7 +1,7 @@
 {
-  "name": "vite-plugin-vue-inspector",
+  "name": "vite-plugin-vue-inspect-jeesite",
   "version": "7.0.0",
-  "description": "Jump to local IDE source code when clicking Vue elements in the browser.",
+  "description": "Jump to local IDE source code when clicking Vue elements in the browser. Jeesite 定制版：内置数据流检查（组件链 + schema 数据定义处定位）。",
   "keywords": [
     "debug",
     "devtools",
@@ -19,7 +19,7 @@
   "author": "webfansplz",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/webfansplz/vite-plugin-vue-inspector.git",
+    "url": "git+https://github.com/xushicheng/vite-plugin-vue-inspect-jeesite.git",
     "directory": "packages/core"
   },
   "files": [
@@ -64,16 +64,14 @@
     "build": "pnpm -w build",
     "prepublishOnly": "pnpm -w build"
   },
-  "dependencies": {
+  "devDependencies": {
+    "@vitejs/devtools-kit": "catalog:dev",
     "@vue/compiler-dom": "catalog:",
     "estree-walker": "catalog:",
     "kolorist": "catalog:",
     "magic-string": "catalog:",
     "nanoevents": "catalog:",
     "source-map-js": "catalog:"
-  },
-  "devDependencies": {
-    "@vitejs/devtools-kit": "catalog:dev"
   },
   "peerDependencies": {
     "@vitejs/devtools-kit": "^0.3.1",

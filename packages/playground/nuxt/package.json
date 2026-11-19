@@ -8,6 +8,6 @@
   },
   "devDependencies": {
     "nuxt": "catalog:",
-    "vite-plugin-vue-inspector": "workspace:*"
+    "vite-plugin-vue-inspect-jeesite": "workspace:*"
   }
 }
